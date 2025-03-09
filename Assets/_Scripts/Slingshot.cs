@@ -10,7 +10,7 @@ public class Slingshot : MonoBehaviour
     public float velocityMult = 10f;    // Multiplier for velocity
     public GameObject projLinePrefab;   // Prefab for the trajectory line
     public AudioSource src;             // AudioSource for sound effects
-    public AudioClip sfx1;              // Sound effect for shooting
+    public AudioClip sfx1;              // Sound effect for shooting (Rubber Band Snap)
 
     [Header("Slingshot Points")]
     public Transform leftPoint;         // Left rubber band anchor
@@ -153,52 +153,51 @@ public class Slingshot : MonoBehaviour
     }
 
     private void ReleaseProjectile(Vector3 launchVector)
-{
-    aimingMode = false;
-
-    Rigidbody projRB = projectile.GetComponent<Rigidbody>();
-    if (projRB != null)
     {
-        projRB.isKinematic = false;
-        projRB.collisionDetectionMode = CollisionDetectionMode.Continuous;
-        projRB.linearVelocity = -launchVector * velocityMult;
+        aimingMode = false;
+
+        Rigidbody projRB = projectile.GetComponent<Rigidbody>();
+        if (projRB != null)
+        {
+            projRB.isKinematic = false;
+            projRB.collisionDetectionMode = CollisionDetectionMode.Continuous;
+            projRB.linearVelocity = -launchVector * velocityMult;
+        }
+
+        // Switch camera to follow the projectile
+        FollowCam.SWITCH_VIEW(FollowCam.eView.slingshot);
+        FollowCam.POI = projectile;
+
+        // Instantiate trajectory visualization
+        if (projLinePrefab != null)
+        {
+            GameObject projLine = Instantiate(projLinePrefab);
+            projLine.transform.SetParent(projectile.transform, false);
+        }
+
+        // Notify game about the shot
+        MissionDemolition.SHOT_FIRED();
+
+        // Play shooting sound effect (Rubber Band Snap)
+        if (src != null && sfx1 != null)
+        {
+            src.PlayOneShot(sfx1); // Play sound effect
+        }
+
+        // Hide rubber band
+        Invoke("ResetRubberBand", 0.5f); // Slight delay ensures it disappears after the shot
+
+        // Reset projectile reference
+        projectile = null;
     }
 
-    // Switch camera to follow the projectile
-    FollowCam.SWITCH_VIEW(FollowCam.eView.slingshot);
-    FollowCam.POI = projectile;
-
-    // Instantiate trajectory visualization
-    if (projLinePrefab != null)
+    // ✅ New function to fully reset the rubber band
+    private void ResetRubberBand()
     {
-        GameObject projLine = Instantiate(projLinePrefab);
-        projLine.transform.SetParent(projectile.transform, false);
+        lineRenderer.enabled = false;
+        lineRenderer.positionCount = 3;
+        lineRenderer.SetPositions(new Vector3[] { Vector3.zero, Vector3.zero, Vector3.zero });
     }
-
-    // Notify game about the shot
-    MissionDemolition.SHOT_FIRED();
-
-    // Play shooting sound effect
-    if (src != null && sfx1 != null)
-    {
-        src.PlayOneShot(sfx1);
-    }
-
-    // Hide rubber band
-    Invoke("ResetRubberBand", 0.5f); // Slight delay ensures it disappears after the shot
-
-    // Reset projectile reference
-    projectile = null;
-}
-
-// ✅ New function to fully reset the rubber band
-private void ResetRubberBand()
-{
-    lineRenderer.enabled = false;
-    lineRenderer.positionCount = 3;
-    lineRenderer.SetPositions(new Vector3[] { Vector3.zero, Vector3.zero, Vector3.zero });
-}
-
 
     private void UpdateRubberBand()
     {

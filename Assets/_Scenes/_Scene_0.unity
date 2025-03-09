@@ -677,7 +677,7 @@ MonoBehaviour:
   velocityMult: 10
   projLinePrefab: {fileID: 4684638227876825814, guid: a95c1800d347b4f49ac73fb088495e54, type: 3}
   src: {fileID: 0}
-  sfx1: {fileID: 0}
+  sfx1: {fileID: 8300000, guid: ca435bbdd970ac84d9c75e29379200e4, type: 3}
   leftPoint: {fileID: 1318860007}
   rightPoint: {fileID: 2108756661}
   launchPoint: {fileID: 1017645500}

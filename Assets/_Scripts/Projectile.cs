@@ -5,58 +5,97 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public class myProjectile : MonoBehaviour
 {
-    const int LOOKBACK_COUNT = 10;
     static List<myProjectile> PROJECTILES = new List<myProjectile>();
 
     [SerializeField]
     private bool _awake = true;
-    public bool awake {
+    public bool awake
+    {
         get { return _awake; }
         private set { _awake = value; }
     }
-    private Vector3 prevPos;
 
-    private List<float> deltas = new List<float>();
     private Rigidbody rigid;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    
+    // **Adjustable thresholds**
+    private float velocityThreshold = 0.01f;  // **Lowered to detect even slow rolling**
+    private float angularVelocityThreshold = 0.05f;  // **Detects rolling motion**
+    private float lowSpeedDuration = 1.5f;  // **Time before destruction**
+    
     void Start()
     {
         rigid = GetComponent<Rigidbody>();
         awake = true;
-        prevPos = new Vector3(1000, 1000, 0);
-        deltas.Add(1000);
         PROJECTILES.Add(this);
+
+        StartCoroutine(CheckForDestruction());
     }
 
-    // Update is called once per frame
     void FixedUpdate()
     {
-        if(rigid.isKinematic || !awake){
+        if (rigid.isKinematic || !awake)
+        {
             return;
         }
-        Vector3 deltaV3 = transform.position - prevPos;
-        deltas.Add(deltaV3.magnitude);
-        prevPos = transform.position;
-        while(deltas.Count > LOOKBACK_COUNT){
-            deltas.RemoveAt(0);
+
+        // Check if velocity AND angular velocity are both very low
+        if (rigid.linearVelocity.sqrMagnitude < velocityThreshold * velocityThreshold &&
+            rigid.angularVelocity.sqrMagnitude < angularVelocityThreshold * angularVelocityThreshold)
+        {
+            awake = false;
+            StartCoroutine(ForceSleepAndDestroy());  // **Ensures Rigidbody stops moving before destroying**
         }
-        float maxDelta = 0;
-        foreach(float f in deltas){
-            if(f > maxDelta){
-                maxDelta = f;
+    }
+
+    private IEnumerator CheckForDestruction()
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(0.5f);  // Check every 0.5s
+
+            if (rigid.linearVelocity.sqrMagnitude < velocityThreshold * velocityThreshold &&
+                rigid.angularVelocity.sqrMagnitude < angularVelocityThreshold * angularVelocityThreshold)
+            {
+                yield return new WaitForSeconds(lowSpeedDuration);  // Wait before destroying
+
+                if (rigid.linearVelocity.sqrMagnitude < velocityThreshold * velocityThreshold &&
+                    rigid.angularVelocity.sqrMagnitude < angularVelocityThreshold * angularVelocityThreshold)
+                {
+                    DestroyProjectile();
+                }
             }
         }
-        if(maxDelta <= Physics.sleepThreshold){
-            awake = false;
-            rigid.Sleep();
-        }
     }
-    private void OnDestroy(){
+
+    private IEnumerator ForceSleepAndDestroy()
+    {
+        yield return new WaitForSeconds(lowSpeedDuration);
+        
+        // **Force Rigidbody to sleep**
+        rigid.linearVelocity = Vector3.zero;
+        rigid.angularVelocity = Vector3.zero;
+        rigid.Sleep();
+
+        DestroyProjectile();
+    }
+
+    private void DestroyProjectile()
+    {
+        PROJECTILES.Remove(this);
+        Destroy(gameObject);
+    }
+
+    private void OnDestroy()
+    {
         PROJECTILES.Remove(this);
     }
-    static public void DESTROY_PROJECTILES(){
-        foreach(myProjectile p in PROJECTILES){
+
+    static public void DESTROY_PROJECTILES()
+    {
+        foreach (myProjectile p in PROJECTILES)
+        {
             Destroy(p.gameObject);
         }
+        PROJECTILES.Clear();
     }
 }

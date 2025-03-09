@@ -71,7 +71,6 @@ public class MissionDemolition : MonoBehaviour
         }
 
         Goal.goalMet = false;
-        shotsTaken = 0; // Reset shots for new level
         UpdateGUI();
         mode = GameMode.playing;
         FollowCam.SWITCH_VIEW(FollowCam.eView.both);
@@ -83,7 +82,7 @@ public class MissionDemolition : MonoBehaviour
             uitLevel.text = $"Level: {level + 1} of {levelMax}";
 
         if (uitShots != null)
-            uitShots.text = $"Shots Taken: {shotsTaken}";
+            uitShots.text = $"Shots Taken: {shotsTaken}"; // No reset
     }
 
     void NextLevel()
@@ -92,16 +91,16 @@ public class MissionDemolition : MonoBehaviour
         if (level == levelMax)
         {
             level = 0;
-            shotsTaken = 0;
+            shotsTaken = 0; // Reset shots only when the game restarts
             SceneManager.LoadScene("Game_Over");
-            return; // Prevent StartLevel() from running
+            return;
         }
         StartLevel();
     }
 
     static public void SHOT_FIRED()
     {
-        S.shotsTaken++;
+        S.shotsTaken++; // Increment shots across levels
     }
 
     static public GameObject GET_CASTLE()

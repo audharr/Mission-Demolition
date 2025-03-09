@@ -6,26 +6,23 @@ using UnityEngine;
 public class ProjectileLine : MonoBehaviour
 {
     static List<ProjectileLine> PROJ_LINES = new List<ProjectileLine>();
-    private const float DIM_MULT = 0.75f;
-    private const float FADE_DURATION = 1.0f; // Time for fading effect
+    private const float FADE_DURATION = 2.0f; // Time taken to fade out
 
     private LineRenderer _line;
     private bool _drawing = true;
-    public myProjectile _projectile;
+    private bool _fading = false; // Prevent multiple fade coroutines
+    private Projectile _projectile;
 
     void Start()
     {
         _line = GetComponent<LineRenderer>();
         _line.positionCount = 1;
         _line.SetPosition(0, transform.position);
+        _line.startColor = _line.endColor = Color.white; // Ensure lines start fully visible
 
-        // Set initial color to full opacity
-        _line.startColor = _line.endColor = Color.white;
+        _projectile = GetComponentInParent<Projectile>();
 
-        if (_projectile != null)
-        {
-            ADD_LINE(this);
-        }
+        ADD_LINE(this);
     }
 
     void FixedUpdate()
@@ -35,13 +32,11 @@ public class ProjectileLine : MonoBehaviour
             _line.positionCount++;
             _line.SetPosition(_line.positionCount - 1, transform.position);
 
-            if (_projectile != null)
+            if (_projectile != null && !_projectile.awake)
             {
-                if (!_projectile.awake) // Ensure _projectile has the awake property defined
-                {
-                    _drawing = false;
-                    _projectile = null;
-                }
+                _drawing = false;
+                _projectile = null;
+                StartCoroutine(FadeOut()); // Start fading when the projectile stops
             }
         }
     }
@@ -53,10 +48,13 @@ public class ProjectileLine : MonoBehaviour
 
     static void ADD_LINE(ProjectileLine newLine)
     {
-        // Fade all previous lines before adding a new one
+        // Start fading out previous lines smoothly
         foreach (ProjectileLine pl in PROJ_LINES)
         {
-            pl.StartCoroutine(pl.FadeOut()); // Start fading previous lines
+            if (!pl._fading) // Prevent restarting fade effect
+            {
+                pl.StartCoroutine(pl.FadeOut());
+            }
         }
 
         PROJ_LINES.Add(newLine);
@@ -64,21 +62,20 @@ public class ProjectileLine : MonoBehaviour
 
     IEnumerator FadeOut()
     {
+        _fading = true; // Prevent multiple fade coroutines
         float elapsedTime = 0f;
         Color startColor = _line.startColor;
 
-        // Fade out the line over time
         while (elapsedTime < FADE_DURATION)
         {
-            float alpha = Mathf.Lerp(1f, 0f, elapsedTime / FADE_DURATION); // Line fades from fully visible to fully transparent
+            float alpha = Mathf.Lerp(1f, 0f, elapsedTime / FADE_DURATION); // Smoothly decrease alpha
             Color newColor = new Color(startColor.r, startColor.g, startColor.b, alpha);
 
             _line.startColor = _line.endColor = newColor;
             elapsedTime += Time.deltaTime;
-            yield return null; // Wait for the next frame
+            yield return null;
         }
 
-        // After fading, destroy the line object
-        Destroy(gameObject);
+        Destroy(gameObject); // Remove the line after it fully fades
     }
 }
