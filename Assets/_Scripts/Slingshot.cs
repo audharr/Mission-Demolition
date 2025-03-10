@@ -24,6 +24,8 @@ public class Slingshot : MonoBehaviour
     private bool aimingMode = false;    // Whether the player is aiming
     private bool isMouseOver = false;   // Track if the mouse is over the slingshot
 
+    // Add a static property to allow access to launchPos
+    public static Vector3 LAUNCH_POS { get; private set; }
     private void Awake()
     {
         // Finding and initializing the launch point
@@ -33,6 +35,7 @@ public class Slingshot : MonoBehaviour
             launchPoint = launchPointTrans.gameObject;
             launchPoint.SetActive(false); // Hide the launch point initially
             launchPos = launchPointTrans.position;
+            LAUNCH_POS = launchPos;
         }
         else
         {
